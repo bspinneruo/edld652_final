@@ -1,0 +1,107 @@
+---
+title: "edld652"
+author: "Brittany Spinner"
+date: "2023-02-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#packages
+library(here)
+library(skimr)
+library(tidyverse)
+library(janitor)
+library(rio)
+library(ggthemes)
+library(ggThemeAssist)
+library(gghighlight)
+library(ggridges)
+library(modelsummary)
+library(aod)
+pacman::p_load(haven, flextable, data.table, foreign)
+```
+
+```{r}
+mydata <- import(here("data/Latinx Health Behaviors and Health Outcomes dataset_7.14.2020.sav")) %>%  janitor::clean_names()
+
+df0 <- mydata %>% 
+  select(id, hisp_combine, hsi2_7_combine, hsi2total, hsi_health_stress, current_health_cond_dichot, current_health_cond_totalcount, amas_combine_comp_4_combine, amas_combine_speak_5_combine, currentobesitydichot, age_combine, lang_perf, black_combine, region_combine, household_living_combine, gen_status_self_combine, household_income_combine) %>% 
+  drop_na()
+df0 <- df0 %>% 
+  mutate(id = as.character(id), )
+#df0 %>% mutate(mean_healthcond = mean(current_health_cond_totalcount))
+df0$hisp_combine <- factor(df0$hisp_combine, 
+                           levels = c(2, 3, 4, 5, 6, 7), 
+                           labels = c("Puerto Rican", "Dominican", "Mexican or Mexican America", "Cuban", "Other Hisp", "Spanish descent"))
+str(df0)
+summary(df0$hisp_combine)
+df_summary <- All(df0) ~ Mean + SD + Min + Median + Max
+datasummary(df_summary, df0, title = "Summary Statistics of Latinx Adult Sample from Qualitrix Survey Data for 2018-19 ", 
+            notes = c("Source: Harvard Dataverse- Latinx Health Behaviors and Health Outcomes dataset_7.14.2020"))
+```
+#### Table 1
+#### *Number of individuals per Latinx subgroup*
+```{r}
+summary(df0$hisp_combine)
+```
+
+
+```{r}
+m1 <- lm(current_health_cond_totalcount ~ hsi_health_stress, df0)
+m2 <- lm(current_health_cond_totalcount ~ hsi_health_stress + factor(hisp_combine), df0)
+modelsummary(list(m1, m2),
+             output = 'flextable',
+             stars = TRUE,
+               vcov = "robust",
+             gof_omit = "Adj.|Log.Lik.|AIC|BIC",
+              notes=c("Cells report coefficients and heteroscedastic-robust standard errors in parentheses. Each observation is one Hispanic identifying adult."))
+             
+```
+
+
+```{r}
+df1 <- margins::margins(m2,
+                        at = list(hisp_combine =c("Puerto Rican", "Dominican", "Mexican or Mexican America", "Cuban", "Other Hisp", "Spanish descent")))
+
+# Use prototypical values in resulting dataset to show results
+proto1 <- ggplot(data=df1, aes(x= hsi_health_stress, y=fitted, color= hisp_combine)) + 
+  geom_smooth(method='lm') +
+  xlab("Health care stress") + ylab("Predicted Number of Chronic Health Conditions") +
+  scale_color_discrete(name = "Latinx Origin Subgroup",
+                       breaks=c("Puerto Rican", "Dominican", "Mexican or Mexican America", "Cuban", "Other Hisp", "Spanish descent")) +
+  labs(title = "Predicted number of chronic health conditions by Latinx origin subgroup")+
+  theme_minimal()
+
+proto1
+summary(df0$current_health_cond_totalcount)
+```
+
+Adjusting for Latinx origin, we find that differences in estimated average number of chronic health conditions increases with stress related to health care discrimination and access. More importantly, that this varies depending on Latinx nationality. In particular, Puerto Rican and Cuban individuals were 
+
+```{r}
+
+df0 %>% 
+  ggplot(aes(y = current_health_cond_totalcount, x = hisp_combine, color = hisp_combine)) +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  labs(x = "Latinx Nationality", 
+       y = "Number of Chronic Health Conditions", title = "Variation in Number of Chronic Health Conditions Across Diverse Latinx Origin Subgropus", caption = "Source:") +
+  theme_minimal()
+  #theme(legend.position = "")
+```
+
+
+```{r}
+ggplot(df0, aes(current_health_cond_dichot, hsi_health_stress, color = hisp_combine)) +
+  geom_jitter()+
+    labs( x = "Presence of Health Condition",
+        y = "Healthcare Related Stress",
+        color = "Nationality") +
+  scale_color_discrete(name = "Nationality",
+                       breaks=c("Puerto Rican", "Dominican", "Mexican or Mexican America", "Cuban", "Other Hisp", "Spanish descent")) +
+  theme_minimal()
+```
+
+
+
+
