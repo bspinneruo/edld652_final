@@ -34,7 +34,7 @@ df0 <- df0 %>%
 df0$hisp_combine <- factor(df0$hisp_combine, 
                            levels = c(2, 3, 4, 5, 6, 7), 
                            labels = c("Puerto Rican", "Dominican", "Mexican or Mexican America", "Cuban", "Other Hisp", "Spanish descent"))
-str(df0)
+#str(df0)
 summary(df0$hisp_combine)
 df_summary <- All(df0) ~ Mean + SD + Min + Median + Max
 datasummary(df_summary, df0, title = "Summary Statistics of Latinx Adult Sample from Qualitrix Survey Data for 2018-19 ", 
