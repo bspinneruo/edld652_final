@@ -1,0 +1,233 @@
+---
+title: "Hispanic/Latino(a) Health Disparities in a US Sample Y2018"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+pacman::p_load(haven, flextable, data.table, ggthemes, sandwich, flexdashboard, ggplot2, ggExtra, grid, tidyverse, rio, here, modelsummary, janitor, ggThemeAssist, gghighlight, ggridges)
+```
+
+```{r}
+mydata <- import(here("data/Latinx Health Behaviors and Health Outcomes dataset_7.14.2020.sav")) %>%  janitor::clean_names()
+
+df0 <- mydata %>% 
+  select(id, hisp_combine, hsi2_7_combine, hsi2total, hsi_health_stress, current_health_cond_dichot, current_health_cond_totalcount, amas_combine_comp_4_combine, amas_combine_speak_5_combine, currentobesitydichot, age_combine, lang_perf, black_combine, region_combine, household_living_combine, gen_status_self_combine, household_income_combine, gender_combine, health_insurance_combine) %>% 
+  drop_na()
+df_clean <- df0 %>% mutate(nationality = as.factor(hisp_combine), discrimination_level = as.factor(hsi2_7_combine), total_health_stress = as.numeric(hsi_health_stress), y_n_health_cond = as.factor(current_health_cond_dichot), eng_speak = as.factor(amas_combine_speak_5_combine),age_combine, lang_pref = as.factor(lang_perf), black_ident = as.factor(black_combine), region = as.factor(region_combine), household_size = as.factor(household_living_combine), generation_status = as.factor(gen_status_self_combine), household_income = as.numeric(household_income_combine), gender = as.factor(gender_combine), health_ins = as.factor(health_insurance_combine))
+#str(df_clean)
+#summary(df_clean$gender)
+df_clean$gender <- factor(df_clean$gender,
+                          levels= c(1,2,3,4),
+                          labels = c("Female", "Male", "Trans/Other", "Other"))
+levels(df_clean$gender)[levels(df_clean$gender)=="Other"] <-"Trans/Other"
+#summary(df_clean$gender)
+df_clean$health_ins <- factor(df_clean$health_ins,
+                          levels= c(1,2,3),
+                          labels = c("Uninsured", "Public Ins", "Private Ins"))
+#summary(df_clean$health_ins)
+df_clean$nationality <- factor(df_clean$nationality, 
+                                   levels = c(2:7), 
+                                   labels = c("Puerto Rican", "Dominican", "Mexican", "Cuban", "Other Hisp", "Other Spanish"))
+#summary(df_clean$nationality)
+levels(df_clean$nationality)[levels(df_clean$nationality)=="Other Spanish"] <-"Other Hisp"
+```
+
+Sidebar Title {.sidebar}
+==========================
+
+**Significance of Research**
+Many institutions in the U.S. group individuals by language; the ethnic Hispanic/Latino(a) population is one such case. Aggregating based on the social construct of ethnicity ignores the health and cultural heterogeneity embedded in the Hispanic/Latino(a) population and has led to the exacerbation of health disparities (Nava et al., 2022). Identifying which groups bear a disproportionate burden of disease is the first step in better understanding individual and systemic disparities, such as inequities in access to care and social determinants of health. And with health disparities now exacerbated by COVID-19, there is a heightened need for research in this area. 
+
+
+**Who**
+In January 2018, data was collected from 798 Hispanic/Latino(a) adults (52% Mexican or Mexican American, 17% Puerto Rican, 8.5% Cuban, 3% Domincan, and 19% Other Hispanic/Latino such as Columbian, Venezuelan, Spanish) in the United States using the online survey platform, Qualtrics. Participants (N = 774) were age 18 years of age or older (M = 40, SD = 15.05). 
+
+**Why** 
+The purpose of the original study was to investigate potential contributors to health outcomes among Hispanic/Latino(a) adults in the United States.
+
+In this Dashboard it is being used to answer the following research questions:
+
+**RQ 1**
+How does nativity and having a chronic health condition vary among nationality sub-groups of Hispanic/Latino(a) adults in the United States? 
+
+**RQ 2**
+How does health care access (i.e., health insurance status) and having a chronic health condition vary among sub-groups of Hispanic/Latino(a) adults in the United States? 
+
+
+**About Data:**
+Data used for this analysis is from previous research study conducted by Budd (2020) and can be found in the Harvard Dataverse.
+[Dataset](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NABLZX)
+
+**Navigate:**
+
+Page 1 - *Demographics*
+
+Page 2 - *Health Disparity Visuals*
+
+Page 1 {data-orientation=rows data-icon="fa-check"}
+==============================
+
+Row {data-height=600}
+-----------------------------------------
+
+### Chart A
+
+
+```{r}
+demographics <- ggplot(df_clean, aes(x=age_combine, group=nationality, fill=nationality)) +
+    geom_density(adjust = 1.5, alpha=.4)+
+  facet_wrap(~ gender)+
+  labs(x = "Age 18-80 for Gender by Nationality", title = "Age Frequency by Gender and Nationality", y = "")+
+  scale_color_colorblind()+
+  theme_tufte()
+demographics
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Chart B
+
+Each of the following graphs show the demographics of this population sample ( _N_ = 774). We can see that the majority of our sample is Mexican/Mexican American. 
+
+This sample had 459 identifying females, 305 males, and 10 transgender or other gender identifying individuals. In this sample transgender and other gender identifying individuals were largely on the younger side (18- ~30 years) for Mexican individuals and young to middle aged (20-60 years) for Dominican individuals. 
+
+Mexican/Mexican American individuals are also predominately 20 and 60 years old with more younger males than females. The Puerto Rican individuals are predominately between 40 and 60 years old. Dominicans were also on the younger side compared to Puerto Rican, other Hispanic, and Cuban individuals.
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Chart C
+
+```{r}
+demographics_2 <- ggplot(df_clean, aes(x=age_combine, group=nationality, fill=nationality)) +
+    geom_density(adjust = 1.5, alpha=.3)+
+  scale_color_colorblind()+
+  labs( x= "Age 18-80", title= "Age Frequency by Nationality", 
+        y = "")+
+   scale_color_colorblind()+
+  theme_tufte()
+demographics_2
+
+```
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+### Chart D
+
+```{r}
+ggplot(df_clean, aes(nationality)) +
+  geom_bar(fill = "cornflowerblue")+
+  labs(title = "Nationality Group Frequencies",
+       y = "Count",
+       x = "")+
+  theme_tufte()
+
+```
+
+
+Page 2 {data-orientation=rows data-icon="fa-check"}
+==============================
+
+Row {data-height=500}
+-----------------------------------------
+
+### Chart A
+
+```{r}
+df_clean$y_n_health_cond <- factor(df_clean$y_n_health_cond,
+                                         levels = c(0,1),
+                                   labels = c("No", "Yes"))
+                                              
+df_clean$generation_status <- factor(df_clean$generation_status,
+                                         levels = c(1,2),
+                                         labels = c("US Born","Foreign Born")
+                                              )
+group_health_gen <- ggplot(df_clean, aes(x = y_n_health_cond, fill = nationality)) + 
+  geom_bar() + 
+  facet_wrap(~ generation_status)+
+  labs( x= "Y/N Presence of a Chronic Health Conditon by Nationality", 
+        y= "Count", title = "US Born Report Having more Health Conditions than Foreign Born")+
+  scale_color_colorblind()+
+  theme_tufte()
+group_health_gen
+```
+
+Row 
+-----------------------------------------
+
+### Chart B
+To further examine the differences in health among this population we _apriori_ hypothesized that nativity, as a universal measure for acculturation, would moderate the relationship between nationality and the presence of a chronic health condition. Chart A above shows that Hispanic/Latino individuals born in the United States experience disproportionately higher reports of having a chronic health condition than foreign born individuals. Results from a Chi-Square analysis reveal that the nationality differences in the presence of a chronic health condition for individuals born in the United States in this sample is statistically significant (N = 556, X2 = 17.64, df = 4, p = .001) as opposed to nativity differences in the presence of a chronic health condition for foreign born individuals (N = 238, X2 = 8.66, df = 4, p = .07). 
+
+**Conclusion:**
+
+Nativity moderates the relationship between nationality and the presence of a chronic health condition. There are significant differences in the presence of chronic health condition for individuals belonging to varying Hispanic/Latino origin subgroups born in the United States. 
+
+**Caution:**
+
+Correlation does not equal causation. Being born in the United States doesn't cause some groups to have a chronic health condition more than others. There are many variables that have not been taken into consideration when evaluating the relationship between nationality, generation status, and health in this sample. Future research should look at other known issues related to negative health outcomes; such as income, age, lack of access to health care, and health care utilization. Referencing back to Page 1, Puerto Rican and Cuban individuals were largely older compared to other groups (~40-80 years).
+
+
+Row {data-height=500}
+-----------------------------------------
+### Chart C
+
+```{r}
+group_health_access <- ggplot(df_clean, aes(x = y_n_health_cond, fill = nationality)) + 
+  geom_bar(positon = "dodge") + 
+  facet_wrap(~ health_ins)+
+  xlab("Y/N Health Presence of a Chronic Conditon by Nationality")+
+  labs( title = "Health of Adult Hispanic/Latino Participants in the US by Nationality",
+        y = "Count")+
+  scale_color_colorblind()+
+  theme_tufte()
+group_health_access
+```
+
+Row
+-----------------------------------------
+### Chart D
+
+A statistical analysis has not yet been conducted for Chart C. But we are able to visually see the differences in insurance status for varying Hispanic/Latino(a) groups and the differences in health outcomes. We can really see that Cuban and Puerto Rican individuals report having a chronic health condition more than the other groups _seemingly_ regardless of insurance status. I'd like to also note that for those identifying as another Hispanic/Latino nationality, public health insurance _may_ be a protective factor in their health. Future research should investigate this difference more to help encourage policy makers to see the value in and potential (statistically speaking) protective nature of public health insurance among diverse communities. 
+
+Page 3 {data-orientation=rows data-icon="fa-check"}
+==============================
+
+Row 
+-----------------------------------------
+
+### Chart A
+```{r}
+# Create a vector of x and y values
+x <- rnorm(1)
+y <- rnorm(1)
+
+# Create a plot with the x and y values
+plot(x, y, xlab="", ylab="")
+
+# Add the text "Thank You" at each data point
+text(x, y, "Thank You!", col="#7E8FC7", cex=3.5)
+```
+
+Row 
+-----------------------------------------
+
+### Chart A
+
+**References**
+
+Budd, E. L. (2020). Correlates of Health Behaviors and Outcomes among U.S. Latinx 
+Adults. Harvard Dataverse, V1, UNF:6:I22oyR6qiaPV53LR37bjuw== 
+[fileUNF]. https://doi.org/10.7910/DVN/NABLZX
+
+Nava, A., Estrada, L., Gerchow, L., Scott, J., Thompson, R., & Squires, A. (2022). Grouping 
+people by language exacerbates health inequities-The case of Latinx/Hispanic populations in the US. _Research in nursing & health_ , 45(2), 142–147. https://doi.org/10.1002/nur.22221
+
+Williams, D. & Collins, C. (1995). US Socioeconomic and Racial Differences in Health: Patterns 
+and Explanations. _Annu. Rev. Sociol_ , 21, 349-86. 
+
+University of Oregon, EDLD 652 Winter 2023
